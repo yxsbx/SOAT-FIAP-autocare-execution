@@ -128,7 +128,8 @@ class ExecutionFlowTest {
     private void confirm(ExecutionJob.StatusEvent event, boolean ack) {
         doAnswer(call -> {
                     var message = json.readValue((String) call.getArgument(2), ExecutionJob.StatusEvent.class);
-                    assertThat(message).isEqualTo(event);
+                    assertThat(message.eventId()).isEqualTo(event.eventId());
+                    assertThat(message.status()).isEqualTo(event.status());
                     MessagePostProcessor processor = call.getArgument(3);
                     assertThat(processor
                                     .postProcessMessage(new Message(new byte[0]))

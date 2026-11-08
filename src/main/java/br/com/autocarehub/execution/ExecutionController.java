@@ -38,7 +38,9 @@ class ExecutionController {
             @RequestHeader("X-Internal-Service-Token") String token,
             @RequestBody UpdateStatus update) {
         authorize(token);
-        if (update.status() == null || update.status() == ExecutionJob.Status.REPAIR_RELEASED) {
+        if (update.status() == null
+                || update.status() == ExecutionJob.Status.REPAIR_RELEASED
+                || update.status() == ExecutionJob.Status.RELEASE_FAILED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid operational transition");
         }
         return JobView.from(jobs.advance(branchId, orderId, update.status()));

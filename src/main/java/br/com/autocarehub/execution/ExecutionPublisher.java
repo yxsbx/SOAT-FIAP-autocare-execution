@@ -3,6 +3,7 @@ package br.com.autocarehub.execution;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
+import br.com.autocarehub.telemetry.MessageTrace;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.springframework.amqp.core.MessageDeliveryMode;
@@ -37,15 +38,17 @@ class ExecutionPublisher {
         }
         var event = job.outbox().getFirst();
         var confirmation = new CorrelationData(UUID.randomUUID().toString());
-        rabbit.convertAndSend(
-                "",
-                RESULTS,
-                json.writeValueAsString(event),
-                message -> {
-                    message.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
-                    return message;
-                },
-                confirmation);
+        try (var scope = MessageTrace.restore(event.traceContext())) {
+            rabbit.convertAndSend(
+                    "",
+                    RESULTS,
+                    json.writeValueAsString(event),
+                    message -> {
+                        message.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+                        return message;
+                    },
+                    confirmation);
+        }
         if (!confirmation.getFuture().get(5, TimeUnit.SECONDS).ack() || confirmation.getReturned() != null) {
             throw new IllegalStateException("RabbitMQ did not route the execution status");
         }

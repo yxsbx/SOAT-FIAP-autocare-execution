@@ -1,0 +1,84 @@
+openapi: 3.1.0
+info:
+  title: AutoCare Hub Execution Service
+  version: 1.0.0
+security:
+  - InternalToken: []
+paths:
+  /internal/v1/branches/{branchId}/execution:
+    parameters:
+      - $ref: '#/components/parameters/Branch'
+    get:
+      operationId: listActiveExecution
+      summary: Lista até 100 ordens ativas da filial
+      responses:
+        '200':
+          description: Fila em ordem de abertura
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: '#/components/schemas/Execution'
+        '400':
+          description: Parâmetro ou header obrigatório inválido
+        '401':
+          description: Token interno inválido ou desabilitado
+  /internal/v1/branches/{branchId}/execution/{orderId}:
+    parameters:
+      - $ref: '#/components/parameters/Branch'
+      - name: orderId
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    patch:
+      operationId: updateExecution
+      summary: Avança o diagnóstico ou o reparo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  enum: [IN_DIAGNOSIS, IN_REPAIR, FINISHED]
+      responses:
+        '200':
+          description: Estado atual da execução
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Execution'
+        '400':
+          description: Parâmetro, header ou status inválido
+        '401':
+          description: Token interno inválido ou desabilitado
+        '404':
+          description: Ordem ausente na filial
+        '409':
+          description: A etapa anterior é necessária
+components:
+  securitySchemes:
+    InternalToken:
+      type: apiKey
+      in: header
+      name: X-Internal-Service-Token
+  parameters:
+    Branch:
+      name: branchId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  schemas:
+    Execution:
+      type: object
+      required: [orderId, branchId, status, createdAt]
+      properties:
+        orderId: {type: string, format: uuid}
+        branchId: {type: string, format: uuid}
+        status:
+          enum: [QUEUED, IN_DIAGNOSIS, REPAIR_RELEASED, IN_REPAIR, FINISHED]
+        createdAt: {type: string, format: date-time}
