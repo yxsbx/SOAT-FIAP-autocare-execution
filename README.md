@@ -1,1 +1,14 @@
-# SOAT-FIAP-autocare-execution
+# AutoCare Hub — Execution Service
+
+Execution mantém a fila por filial e controla diagnóstico, liberação, reparo e conclusão em MongoDB. Recebe comandos da OS em `autocare.execution.command.v1` e devolve mudanças de etapa em `autocare.os.execution-updated.v1`. A atualização da etapa e o registro do evento são atômicos no documento MongoDB.
+
+As rotas internas abaixo exigem o header `X-Internal-Service-Token`, configurado por `EXECUTION_INTERNAL_TOKEN`.
+
+- `GET /internal/v1/branches/{branchId}/execution` lista a fila ativa.
+- `PATCH /internal/v1/branches/{branchId}/execution/{orderId}` recebe `status` com `IN_DIAGNOSIS`, `IN_REPAIR` ou `FINISHED`. A liberação para reparo vem da OS após aprovação e pagamento.
+
+```sh
+mvn -B spotless:check verify
+```
+
+Configure `EXECUTION_MONGODB_URI`, `RABBITMQ_HOST`, `RABBITMQ_USER` e `RABBITMQ_PASSWORD` para iniciar o serviço. Use o BDD na API para validar o conjunto localmente. Os manifestos de implantação estão em `k8s/`.
